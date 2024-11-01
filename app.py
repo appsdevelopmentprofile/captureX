@@ -318,20 +318,24 @@ if selected == 'Operations':
 if selected == 'Workforce':
     st.title('Workforce Model')
 
-    # Load environment variables
-    load_dotenv(override=True)
-    OPENAI_KEY = os.getenv('OPENAI_API_KEY')
-    ENDPOINT = os.getenv('OPENAI_API_BASE')
-    OPENAI_VERSION = os.getenv('OPENAI_API_VERSION')
-    
-    # Sidebar for navigation
+    # Sidebar for OpenAI API credentials input
     with st.sidebar:
+        st.header("🔑 OpenAI API Credentials")
+        OPENAI_KEY = st.text_input("OpenAI API Key", type="password")
+        ENDPOINT = st.text_input("API Endpoint", value="https://api.openai.com")
+        OPENAI_VERSION = st.text_input("API Version", value="2023-03-15-preview")
+    
+    # Check if API key is provided
+    if not OPENAI_KEY:
+        st.warning("Please enter your OpenAI API key in the sidebar.")
+    else:
+        # Sidebar for navigation
         selected = st.selectbox('OptiLabor Tool', 
                                  ['Virtual Assistant',
                                   'LaborSync: Automation (Augmented Reality + Digital Twins + On-Site Robots)',
                                   'Upskilling Module: Training & Competency'],
                                  index=0)
-    
+
     # Front-End Layout
     st.set_page_config(page_title='OptiLabor AI', page_icon='OptiLaborAI.png', layout="wide")
     add_logo("OptiLaborAI.png")
