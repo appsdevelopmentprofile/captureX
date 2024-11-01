@@ -317,3 +317,7 @@ if selected == 'Operations':
 # Operations Page
 if selected == 'Workforce':
     st.title('Workforce Model')
+
+# Compliance
+if selected == 'Compliance':
+    st.title("Compliance") 
