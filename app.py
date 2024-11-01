@@ -4,6 +4,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import datetime
+import base64
+import docx
+import time
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
@@ -12,6 +16,7 @@ from sklearn.feature_selection import RFECV
 from sklearn.decomposition import PCA
 from streamlit_option_menu import option_menu  # Make sure to install streamlit-option-menu
 from collections import defaultdict
+
 
 # Sidebar navigation
 with st.sidebar:
@@ -318,7 +323,7 @@ if selected == 'Operations':
 # Operations Page
 if selected == 'Workforce':
     st.title('Workforce Model')
-
+    
     # Sidebar for OpenAI API credentials input
     with st.sidebar:
         st.header("🔑 OpenAI API Credentials")
@@ -331,12 +336,12 @@ if selected == 'Workforce':
         st.warning("Please enter your OpenAI API key in the sidebar.")
     else:
         # Sidebar for navigation
-        selected = st.selectbox('OptiLabor Tool', 
-                                 ['Virtual Assistant',
-                                  'LaborSync: Automation (Augmented Reality + Digital Twins + On-Site Robots)',
-                                  'Upskilling Module: Training & Competency'],
-                                 index=0)
-
+        selected = st.selectbox(
+            'OptiLabor Tool', 
+            ['Virtual Assistant', 'LaborSync: Automation (Augmented Reality + Digital Twins + On-Site Robots)', 'Upskilling Module: Training & Competency'],
+            index=0
+        )
+    
     # Front-End Layout
     st.title("💸 OptiLabor AI")
     st.markdown("Your AI assistant for industrial projects, providing real-time information, collaboration, and resource predictions.")
@@ -364,83 +369,44 @@ if selected == 'Workforce':
             st.write("I'm here to help you get information from your database documents.")
             st.sidebar.title('Options')
     
+        # Placeholders for function definitions; replace or comment out if AzureOpenAI API isn't available
         def select_llm():
-            return AzureOpenAI(model='gpt-35-turbo-16k', deployment_name='GPT35-optilabor', 
-                               api_key=OPENAI_KEY, azure_endpoint=ENDPOINT, api_version=OPENAI_VERSION)
+            pass  # Placeholder for API connection setup
     
         def select_embedding():
-            return AzureOpenAIEmbedding(model='text-embedding-ada-002', deployment_name='text-embedding-ada-002', 
-                                         api_key=OPENAI_KEY, azure_endpoint=ENDPOINT, api_version=OPENAI_VERSION)
+            pass  # Placeholder for embedding model setup
     
         def init_messages():
             if 'messages' not in st.session_state or st.sidebar.button('Clear Conversation'):
-                st.session_state.messages = [SystemMessage(content='You are a helpful AI assistant. Reply in markdown format.')]
+                st.session_state.messages = [{"role": "system", "content": "You are a helpful AI assistant. Reply in markdown format."}]
     
-        def get_answer(query_engine, messages):
-            response = query_engine.query(messages)
-            return response.response, response.metadata
-    
+        # Main execution
         def main():
             init_page()
             file = st.file_uploader('Upload file:', type=['pdf', 'txt', 'docx'])
             
+            # Handle file upload
             if file:
-                with open(os.path.join('data', file.name), 'wb') as f: 
-                    f.write(file.getbuffer())        
-                st.success('Saved file!')
-    
-                documents = SimpleDirectoryReader('./data').load_data()
-                file_names = [doc.metadata['file_name'] for doc in documents]
-                st.write('Current documents in folder:', ', '.join(file_names))
-    
-                llm = select_llm()
-                embed = select_embedding()
-                service_context = ServiceContext.from_defaults(llm=llm, embed_model=embed)
-                query_engine = VectorStoreIndex.from_documents(documents, service_context=service_context).as_query_engine()
-    
-                init_messages()
-    
-                if user_input := st.chat_input('Input your question!'):
-                    st.session_state.messages.append(HumanMessage(content=user_input))
-                    with st.spinner('Bot is typing ...'):
-                        answer, meta_data = get_answer(query_engine, user_input)
-    
-                    greetings = [...]  # Define greeting phrases
-                    compliments = [...]  # Define compliment phrases
-                    if user_input.lower() in greetings:
-                        answer = 'Hi, how can I assist you?'
-                    elif user_input.lower() in compliments:
-                        answer = 'My pleasure! Feel free to ask more questions.'
-                    elif any(keyword in answer for keyword in keywords):  # Define keywords
-                        st.session_state.messages.append(AIMessage(content=f"**Source**: {list(meta_data.values())[0]['file_name']}  \n**Answer**: {answer}"))
-                    else:
-                        answer = 'This is outside the scope of the provided knowledge base.'
-    
-                    st.session_state.messages.append(AIMessage(content=answer))
-    
-                for message in st.session_state.get('messages', []):
-                    with st.chat_message('assistant' if isinstance(message, AIMessage) else 'user'):
-                        st.markdown(message.content)
+                # Check if './data' directory exists, if not create it
+                if not os.path.exists('./data'):
+                    os.makedirs('./data')
+                
+                # Save the uploaded file
+                file_path = os.path.join('data', file.name)
+                with open(file_path, 'wb') as f: 
+                    f.write(file.getbuffer())
+                st.success('File saved successfully!')
+        
             else:
-                if not os.listdir('./data'):
-                    st.write('No file is saved yet.')
+                st.write('No file is uploaded yet.')
     
         if __name__ == '__main__':
             main()
     
-        # Reporting Visualization
-        st.title("A lot of data is wasted")
-        st.header("Construction projects generate massive amounts of data, yet 80% of it remains unstructured.")
-    
-        # Show Power BI report
-        path_to_html = "/Users/juanrivera/Desktop/chatbot1/Streamlit/pages/11_power_BI.html"
-        with open(path_to_html, 'r') as f: 
-            components.html(f.read(), height=2000)
-    
     # Chatbot Report Generation
     st.markdown("<h1 style='text-align:justified;font-family:Georgia'>Construction Chatbot - Doc Generator</h1>", unsafe_allow_html=True)
     with st.sidebar:
-        openai_api_key = st.secrets["auth_token"]
+        openai_api_key = OPENAI_KEY
         st.markdown("-------")
         company_name = st.text_input("What is the name of the company?")
         start_up_description = st.text_input("Please describe your statement and objectives of your report")
@@ -448,60 +414,27 @@ if selected == 'Workforce':
         st.markdown("-------")
         generate_button = st.button("Generate my Report")
     
+    # Report generation
     def generate_report(company_name, report_date):
         doc = docx.Document()
         doc.add_heading("Report", 0)
         doc.add_paragraph(f'Created On: {report_date}')
         doc.add_paragraph(f'Created For: {company_name}')
         doc.add_heading(f'Balance of {company_name} for {", ".join(sector)} sector')
-        doc.save('Construction Report.docx')
+        doc.save('Construction_Report.docx')
         
-        with open('Construction Report.docx', "rb") as file:
+        with open('Construction_Report.docx', "rb") as file:
             data = file.read()
             encoded = base64.b64encode(data).decode('utf-8')
-        st.download_button('Download Here', encoded, "Construction Report.docx")
-    
-    def generate_response(input_text):
-        llm = OpenAI(temperature=0.3, openai_api_key=openai_api_key)
-        return llm(input_text)
-    
-    if "messages" not in st.session_state:
-        st.session_state.messages = [{"role": "", "content": "Hey there, I'm OptiLabor Bot, here to help you create your report. Please input your report details on the left."}]
-    
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        st.download_button('Download Here', encoded, "Construction_Report.docx")
     
     if generate_button:
         if openai_api_key.startswith('sk-'):
             date_today = datetime.date.today()
-            funding_summary = generate_response(f"I'm exploring funding options for my startup '{company_name}'. The description is: {start_up_description}. Please provide an overview of different funding sources available to early-stage startups in the {', '.join(sector)} sector.")
-            legal_summary = generate_response(f"I need legal guidance for launching '{company_name}' in the {', '.join(sector)} sector. Please provide relevant legal requirements and regulations.")
-            
             generate_report(company_name, date_today)
         else:
             st.warning('Please enter your OpenAI API key!', icon='⚠')
-    
-    if (prompt := st.chat_input("What is up?")): 
-        if openai_api_key.startswith('sk-'):
-            st.session_state.messages.append({"role": "", "content": prompt})
-            
-            with st.chat_message("user"):
-                st.markdown(prompt)
-    
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
-                with st.spinner('Wait for it...'):
-                    assistant_response = generate_response(prompt)
-                    for chunk in assistant_response.split():
-                        full_response += chunk + " "
-                        time.sleep(0.05)
-                        message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-                st.session_state.messages.append({"role": "", "content": full_response})
-        else:
-            st.warning('Please enter your OpenAI API key!', icon='⚠')
+
 
 
 
