@@ -9,7 +9,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.feature_selection import RFECV
 from sklearn.decomposition import PCA
-from collections import defaultdict
 from streamlit_option_menu import option_menu  # Make sure to install streamlit-option-menu
 
 # Sidebar navigation
@@ -35,232 +34,39 @@ if selected == 'Operations':
     section = st.sidebar.radio("Go to", ("Upstream", "Midstream", "Downstream"))
 
     # Function for the Upstream Section
-    if selected == 'Upstream':
-        def upstream_section():
-            st.header("Upstream Operations")
-            st.write("This section focuses on exploration, extraction, and production activities.")
+    def upstream_section():
+        st.header("Upstream Operations")
+        st.write("This section focuses on exploration, extraction, and production activities.")
     
-            # Streamlit app for Random Forest Regression
-            st.title("Random Forest Regression with Feature Selection and Hyperparameter Tuning")
+        # Streamlit app for Random Forest Regression
+        st.title("Random Forest Regression with Feature Selection and Hyperparameter Tuning")
     
-            # Step 1: Load the dataset
-            uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
-            if uploaded_file is not None:
-                data = pd.read_csv(uploaded_file)
+        # Step 1: Load the dataset
+        uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+        if uploaded_file is not None:
+            data = pd.read_csv(uploaded_file)
     
-                # Step 2: Data Preprocessing
-                # Handle missing values
-                data = data.dropna()
+            # Step 2: Data Preprocessing
+            data = data.dropna()
+            target_column = st.text_input("Enter the target column name:", "MMP (mPa)")
     
-                # Ask user for target column name
-                target_column = st.text_input("Enter the target column name:", "MMP (mPa)")
+            if target_column in data.columns:
+                y = pd.to_numeric(data[target_column], errors='coerce')
+                X = pd.get_dummies(data.drop(target_column, axis=1), drop_first=True)
     
-                if target_column in data.columns:
-                    # Ensure target variable is numeric
-                    y = pd.to_numeric(data[target_column], errors='coerce')
+                # Step 3: Feature scaling
+                scaler = StandardScaler()
+                X_scaled = scaler.fit_transform(X)
     
-                    # Handle any categorical variables in X
-                    X = pd.get_dummies(data.drop(target_column, axis=1), drop_first=True)
+                # Feature selection using RFE with Cross-validation
+                model_rf = RandomForestRegressor(n_estimators=100, random_state=42)
+                rfecv = RFECV(estimator=model_rf, step=1, cv=5, scoring='neg_mean_squared_error')
+                rfecv.fit(X_scaled, y)
     
-                    # Step 3: Feature scaling
-                    scaler = StandardScaler()
-                    X_scaled = scaler.fit_transform(X)
+                selected_features = X.columns[rfecv.support_].tolist()
+                st.write("Selected Features:")
+                st.write(selected_features)
     
-                    # Feature selection using RFE with Cross-validation
-                    model_rf = RandomForestRegressor(n_estimators=100, random_state=42)
-                    rfecv = RFECV(estimator=model_rf, step=1, cv=5, scoring='neg_mean_squared_error')
-                    rfecv.fit(X_scaled, y)
-    
-                    # Get the selected features and their ranking
-                    selected_features = X.columns[rfecv.support_].tolist()
-                    st.write("Selected Features:")
-                    st.write(selected_features)
-    
-                    # Step 4: Hyperparameter tuning with RandomizedSearchCV
-                    param_dist = {
-                        'n_estimators': [100, 200, 300],
-                        'max_depth': [None, 5, 10, 15],
-                        'min_samples_split': [2, 5, 10],
-                        'min_samples_leaf': [1, 2, 4],
-                    }
-    
-                    model_rf_tuned = RandomForestRegressor(random_state=42)
-                    rf_random = RandomizedSearchCV(estimator=model_rf_tuned,
-                                                   param_distributions=param_dist,
-                                                   n_iter=50,
-                                                   cv=5,
-                                                   scoring="neg_mean_squared_error",
-                                                   verbose=1,
-                                                   random_state=42)
-                    rf_random.fit(X_scaled, y)
-    
-                    st.write("Best Hyperparameters:")
-                    st.write(rf_random.best_params_)
-    
-                    # Step 5: Model Evaluation on Testing Set
-                    X_selected = rfecv.transform(X_scaled)
-                    X_train, X_test, y_train, y_test = train_test_split(X_selected,
-                                                                        y,
-                                                                        test_size=0.2,
-                                                                        random_state=42)
-    
-                    model_rf_tuned_best = RandomForestRegressor(**rf_random.best_params_,
-                                                                random_state=42)
-                    model_rf_tuned_best.fit(X_train, y_train)
-                    y_test_pred = model_rf_tuned_best.predict(X_test)
-    
-                    mse_test = mean_squared_error(y_test, y_test_pred)
-                    mae_test = mean_absolute_error(y_test, y_test_pred)
-                    r2_test = r2_score(y_test, y_test_pred)
-    
-                    st.write(f"Mean Squared Error (MSE) on Test Set: {mse_test}")
-                    st.write(f"Mean Absolute Error (MAE) on Test Set: {mae_test}")
-                    st.write(f"R-squared (R2) Score on Test Set: {r2_test}")
-    
-                    # Step 6: Visualization
-                    # Feature Importances Plot
-                    feature_importances = model_rf_tuned_best.feature_importances_
-                    plt.figure(figsize=(10, 6))
-                    sns.barplot(x=selected_features,
-                                y=feature_importances,
-                                palette='viridis')
-                    plt.xlabel("Selected Features")
-                    plt.ylabel("Feature Importance")
-                    plt.title("Feature Importance")
-                    plt.tight_layout()
-                    st.pyplot(plt)
-    
-                    # Residual Plot
-                    residuals = y_test - y_test_pred
-                    plt.scatter(y_test,
-                                residuals,
-                                alpha=0.7,
-                                color='b')
-                    plt.axhline(y=0,
-                                color='k',
-                                linestyle='--')
-                    plt.xlabel("Actual MPG (mpg)")
-                    plt.ylabel("Residuals (mpg)")
-                    plt.title("Residual Plot")
-                    plt.tight_layout()
-                    st.pyplot(plt)
-    
-                    # Scatter Plot of Predicted vs. Actual Values with Confidence Interval
-                    plt.scatter(y_test,
-                                y_test_pred,
-                                alpha=0.7,
-                                color='b',
-                                edgecolors='k')
-                    plt.plot([min(y_test), max(y_test)],
-                             [min(y_test), max(y_test)],
-                             linestyle="--",
-                             linewidth=2)
-                    plt.xlabel("Actual MPG (mpg)")
-                    plt.ylabel("Predicted MPG (mpg)")
-                    plt.title("Scatter Plot of Predicted vs. Actual Values")
-                    plt.tight_layout()
-                    st.pyplot(plt)
-    
-                    # Step 7: Taylor Diagram
-                    plot_taylor_diagram(y_test,
-                                        y_test_pred,
-                                        title="Taylor Diagram")
-                else:
-                    st.error("Target column not found in the dataset. Please check the column name.")
-            else:
-                st.info("Please upload a CSV file to proceed.")
-
-    # Function for the Midstream Section
-    def midstream_section():
-        st.header("Midstream Operations")
-        st.write("This section includes transportation, storage, and handling.")
-
-        # Simulated dataset including process, mechanical, and performance data
-        @st.cache
-        def load_data():
-            data = pd.DataFrame({
-                'flow': np.random.normal(100, 10, 1000),
-                'level': np.random.normal(80, 8, 1000),
-                'pressure': np.random.normal(150, 15, 1000),
-                'temperature': np.random.normal(200, 20, 1000),
-                'vibration': np.random.normal(0.5, 0.1, 1000),
-                'bearing_temp': np.random.normal(50, 5, 1000),
-                'lube_oil_temp': np.random.normal(60, 5, 1000),
-                'surge_limit': np.random.normal(0.8, 0.05, 1000),
-                'pump_performance': np.random.normal(75, 7, 1000),
-                'compressor_curve': np.random.normal(0.9, 0.05, 1000),
-                'failure_risk': np.random.normal(0.5, 0.2, 1000)
-            })
-            return data
-
-        data = load_data()
-
-        # 1. Descriptive Analytics: Equipment Historical Data Overview
-        def descriptive_analytics(data):
-            st.subheader("Descriptive Analytics: Equipment Historical Data")
-            st.write(data.describe())  # Display statistical summary
-
-            # Visualize key features in dataset
-            st.write("Data Visualization")
-            sns.pairplot(data)
-            st.pyplot(plt)
-
-        # 2. Diagnostic Analytics: Root Cause Analysis using PCA and Drill Down
-        def diagnostic_analytics(data):
-            st.subheader("Diagnostic Analytics: Root Cause Analysis")
-            pca = PCA(n_components=2)
-            pca_result = pca.fit_transform(data.drop('failure_risk', axis=1))  # Exclude target column
-
-            st.write("Explained Variance by PCA Components:", pca.explained_variance_ratio_)
-
-            # Scatter plot for PCA analysis
-            fig, ax = plt.subplots()
-            ax.scatter(pca_result[:, 0], pca_result[:, 1], c=data['failure_risk'], cmap='viridis')
-            ax.set_title("PCA - Diagnostic Analysis")
-            ax.set_xlabel("PCA1")
-            ax.set_ylabel("PCA2")
-            st.pyplot(fig)
-
-        # 3. Predictive Analytics: Digital Twin and Predict Asset Failures
-        def predictive_analytics(data, target_column):
-            st.subheader("Predictive Analytics: Predict Asset Failures using Digital Twin")
-
-            # Separate features (X) and target (y)
-            X = data.drop(target_column, axis=1)
-            y = data[target_column]
-
-            # Split data into training and test sets
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-            # Fit model (Random Forest Regressor for demonstration)
-            model = RandomForestRegressor(n_estimators=100, random_state=42)
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-
-            # Display results
-            st.write("Predictions:", y_pred)
-
-        # Show selected section content
-        if section == "Upstream":
-            upstream_section()
-        elif section == "Midstream":
-            midstream_section()
-
-# If 'Workforce' is selected
-elif selected == "Workforce":
-    st.title("Workforce Module")
-    st.write("This module includes workforce training and development strategies.")
-
-    # Implement workforce training strategies here
-    st.subheader("Workforce Training Strategies")
-    st.write("This section covers various training programs and methodologies.")
-
-# If 'Compliance' is selected
-elif selected == "Compliance":
-    st.title("Compliance Module")
-    st.write("This module focuses on compliance regulations and safety standards.")
-
-    # Implement compliance strategies here
-    st.subheader("Compliance Regulations Overview")
-    st.write("This section outlines compliance regulations and safety standards.")
-
+                # Step 4: Hyperparameter tuning with RandomizedSearchCV
+                param_dist = {
+                    'n_est
