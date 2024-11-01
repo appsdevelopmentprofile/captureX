@@ -337,10 +337,8 @@ if selected == 'Workforce':
                                  index=0)
 
     # Front-End Layout
-    st.set_page_config(page_title='OptiLabor AI', page_icon='OptiLaborAI.png', layout="wide")
-    add_logo("OptiLaborAI.png")
     st.title("💸 OptiLabor AI")
-    st.markdown("Your AI assistant for construction projects, providing real-time information, collaboration, and resource predictions.")
+    st.markdown("Your AI assistant for industrial projects, providing real-time information, collaboration, and resource predictions.")
     
     # Display features
     st.markdown("### Features")
