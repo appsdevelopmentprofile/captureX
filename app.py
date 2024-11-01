@@ -10,6 +10,7 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.feature_selection import RFECV
 from sklearn.decomposition import PCA
 from streamlit_option_menu import option_menu  # Make sure to install streamlit-option-menu
+from collections import defaultdict
 
 # Sidebar navigation
 with st.sidebar:
