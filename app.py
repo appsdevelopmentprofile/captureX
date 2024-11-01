@@ -352,16 +352,11 @@ if selected == 'Workforce':
     st.markdown("\n".join(f"- {feature}" for feature in features))
     st.markdown("-------")
     
-    # Display video and image
-    st.video(open('Untitled video.mp4', 'rb').read())
-    st.image('OptiLabor.png', caption='OptiLabor Features')
-    
     # Virtual Assistant Module
     if selected == 'Virtual Assistant':
         st.title("Module 1: Virtual Assistant")
         st.markdown("An NLP assistant providing real-time information, reducing RFIs.")
         st.header("Document Management Challenges")
-        st.image('docs construction.jpeg', caption='Source: InEight Blog')
     
         def init_page():
             st.header('OL DocWizard')
@@ -435,7 +430,6 @@ if selected == 'Workforce':
         # Reporting Visualization
         st.title("A lot of data is wasted")
         st.header("Construction projects generate massive amounts of data, yet 80% of it remains unstructured.")
-        st.image('reporting.png', caption='Source: StructionSite Blog')
     
         # Show Power BI report
         path_to_html = "/Users/juanrivera/Desktop/chatbot1/Streamlit/pages/11_power_BI.html"
