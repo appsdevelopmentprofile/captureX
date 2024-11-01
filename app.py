@@ -244,11 +244,6 @@ if selected == 'Operations':
     def downstream_section():
         st.header("Downstream Operations")
         st.write("This section covers refining, distribution, and retail.")  
-        import streamlit as st
-        import numpy as np
-        import pandas as pd
-        import matplotlib.pyplot as plt
-        from collections import defaultdict
         
         # Placeholder function to simulate environment
         def simulate_investment(oil_gas_investment, renewables_investment, ccs_investment):
