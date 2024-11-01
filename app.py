@@ -35,6 +35,7 @@ if selected == 'Operations':
     section = st.sidebar.radio("Go to", ("Upstream", "Midstream", "Downstream"))
 
     # Function for the Upstream Section
+    if selected == 'Upstream':
     def upstream_section():
         st.header("Upstream Operations")
         st.write("This section focuses on exploration, extraction, and production activities.")
