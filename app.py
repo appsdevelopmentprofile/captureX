@@ -69,4 +69,189 @@ if selected == 'Operations':
     
                 # Step 4: Hyperparameter tuning with RandomizedSearchCV
                 param_dist = {
-                    'n_est
+                    'n_estimators': [100, 200, 300],
+                    'max_depth': [None, 5, 10, 15],
+                    'min_samples_split': [2, 5, 10],
+                    'min_samples_leaf': [1, 2, 4],
+                }
+    
+                model_rf_tuned = RandomForestRegressor(random_state=42)
+                rf_random = RandomizedSearchCV(estimator=model_rf_tuned,
+                                               param_distributions=param_dist,
+                                               n_iter=50,
+                                               cv=5,
+                                               scoring="neg_mean_squared_error",
+                                               verbose=1,
+                                               random_state=42)
+                rf_random.fit(X_scaled, y)
+    
+                st.write("Best Hyperparameters:")
+                st.write(rf_random.best_params_)
+    
+                # Step 5: Model Evaluation on Testing Set
+                X_selected = rfecv.transform(X_scaled)
+                X_train, X_test, y_train, y_test = train_test_split(X_selected,
+                                                                    y,
+                                                                    test_size=0.2,
+                                                                    random_state=42)
+    
+                model_rf_tuned_best = RandomForestRegressor(**rf_random.best_params_,
+                                                            random_state=42)
+                model_rf_tuned_best.fit(X_train, y_train)
+                y_test_pred = model_rf_tuned_best.predict(X_test)
+    
+                mse_test = mean_squared_error(y_test, y_test_pred)
+                mae_test = mean_absolute_error(y_test, y_test_pred)
+                r2_test = r2_score(y_test, y_test_pred)
+    
+                st.write(f"Mean Squared Error (MSE) on Test Set: {mse_test}")
+                st.write(f"Mean Absolute Error (MAE) on Test Set: {mae_test}")
+                st.write(f"R-squared (R2) Score on Test Set: {r2_test}")
+    
+                # Step 6: Visualization
+                feature_importances = model_rf_tuned_best.feature_importances_
+                plt.figure(figsize=(10, 6))
+                sns.barplot(x=selected_features,
+                            y=feature_importances,
+                            palette='viridis')
+                plt.xlabel("Selected Features")
+                plt.ylabel("Feature Importance")
+                plt.title("Feature Importance")
+                plt.tight_layout()
+                st.pyplot(plt)
+    
+                # Residual Plot
+                residuals = y_test - y_test_pred
+                plt.scatter(y_test,
+                            residuals,
+                            alpha=0.7,
+                            color='b')
+                plt.axhline(y=0,
+                            color='k',
+                            linestyle='--')
+                plt.xlabel("Actual MPG (mpg)")
+                plt.ylabel("Residuals (mpg)")
+                plt.title("Residual Plot")
+                plt.tight_layout()
+                st.pyplot(plt)
+    
+                # Scatter Plot of Predicted vs. Actual Values
+                plt.scatter(y_test,
+                            y_test_pred,
+                            alpha=0.7,
+                            color='b',
+                            edgecolors='k')
+                plt.plot([min(y_test), max(y_test)],
+                         [min(y_test), max(y_test)],
+                         linestyle="--",
+                         linewidth=2)
+                plt.xlabel("Actual MPG (mpg)")
+                plt.ylabel("Predicted MPG (mpg)")
+                plt.title("Scatter Plot of Predicted vs. Actual Values")
+                plt.tight_layout()
+                st.pyplot(plt)
+            else:
+                st.error("Target column not found in the dataset. Please check the column name.")
+        else:
+            st.info("Please upload a CSV file to proceed.")
+
+    # Function for the Midstream Section
+    def midstream_section():
+        st.header("Midstream Operations")
+        st.write("This section includes transportation, storage, and handling.")
+
+        # Simulated dataset including process, mechanical, and performance data
+        @st.cache
+        def load_data():
+            data = pd.DataFrame({
+                'flow': np.random.normal(100, 10, 1000),
+                'level': np.random.normal(80, 8, 1000),
+                'pressure': np.random.normal(150, 15, 1000),
+                'temperature': np.random.normal(200, 20, 1000),
+                'vibration': np.random.normal(0.5, 0.1, 1000),
+                'bearing_temp': np.random.normal(50, 5, 1000),
+                'lube_oil_temp': np.random.normal(60, 5, 1000),
+                'surge_limit': np.random.normal(0.8, 0.05, 1000),
+                'pump_performance': np.random.normal(75, 7, 1000),
+                'compressor_curve': np.random.normal(0.9, 0.05, 1000),
+                'failure_risk': np.random.normal(0.5, 0.2, 1000)
+            })
+            return data
+
+        data = load_data()
+
+        # 1. Descriptive Analytics: Equipment Historical Data Overview
+        def descriptive_analytics(data):
+            st.subheader("Descriptive Analytics: Equipment Historical Data")
+            st.write(data.describe())  # Display statistical summary
+
+            # Visualize key features in dataset
+            st.write("Data Visualization")
+            sns.pairplot(data)
+            st.pyplot(plt)
+
+        # 2. Diagnostic Analytics: Root Cause Analysis using PCA and Drill Down
+        def diagnostic_analytics(data):
+            st.subheader("Diagnostic Analytics: Root Cause Analysis")
+            pca = PCA(n_components=2)
+            pca_result = pca.fit_transform(data.drop('failure_risk', axis=1))  # Exclude target column
+
+            st.write("Explained Variance by PCA Components:", pca.explained_variance_ratio_)
+
+            # Scatter plot for PCA analysis
+            fig, ax = plt.subplots()
+            ax.scatter(pca_result[:, 0], pca_result[:, 1], c=data['failure_risk'], cmap='viridis')
+            ax.set_title("PCA - Diagnostic Analysis")
+            ax.set_xlabel("PCA1")
+            ax.set_ylabel("PCA2")
+            st.pyplot(fig)
+
+        # 3. Predictive Analytics: Digital Twin and Predict Asset Failures
+        def predictive_analytics(data):
+            st.subheader("Predictive Analytics: Predict Asset Failures using Digital Twin")
+
+            # Separate features (X) and target (y)
+            X = data.drop('failure_risk', axis=1)
+            y = data['failure_risk']
+
+            # Split data into training and test sets
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+            # Fit model (Random Forest Regressor for demonstration)
+            model = RandomForestRegressor(n_estimators=100, random_state=42)
+            model.fit(X_train, y_train)
+
+            # Predict on test set
+            y_pred = model.predict(X_test)
+
+            # Evaluate model
+            st.write("Model Performance Metrics:")
+            st.write(f"Mean Absolute Error: {mean_absolute_error(y_test, y_pred)}")
+            st.write(f"Mean Squared Error: {mean_squared_error(y_test, y_pred)}")
+
+            # Feature importance
+            importances = model.feature_importances_
+            feature_importances = pd.DataFrame(importances, index=X.columns, columns=["Importance"]).sort_values("Importance", ascending=False)
+            st.write("Feature Importance:")
+            st.bar_chart(feature_importances)
+
+        # Call the functions for analytics
+        descriptive_analytics(data)
+        diagnostic_analytics(data)
+        predictive_analytics(data)
+
+    # Function for the Downstream Section
+    def downstream_section():
+        st.header("Downstream Operations")
+        st.write("This section covers refining, distribution, and retail.")
+
+        # Add any relevant functionality here
+        st.write("Placeholder for Downstream Operations...")
+
+    # Display the selected section
+    if section == "Upstream":
+        upstream_section()
+    elif section == "Midstream":
+        midstream_section()
+    else:
+        downstream_section()
