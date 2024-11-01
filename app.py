@@ -313,3 +313,7 @@ if selected == 'Operations':
         midstream_section()
     else:
         downstream_section()
+
+# Operations Page
+if selected == 'Workforce':
+    st.title('Workforce Model')
